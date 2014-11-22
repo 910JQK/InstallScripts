@@ -191,7 +191,7 @@ function main_menu(){
 		|| error "empting pacman cache";
 	    ;;
 	9) # Quit
-	    assert_target && chroot_release;
+	    [ -d "${target}" ] && chroot_release;
 	    exit 0
 	    ;;
     esac
