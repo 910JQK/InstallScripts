@@ -26,11 +26,6 @@ function msg(){
 }
 
 
-function yesno(){
-    dialog --title "${1}" --yesno "${2}" 7 25;
-}
-
-
 function error(){
     echo "Error while ${1}";
     echo -n "(Enter):";
