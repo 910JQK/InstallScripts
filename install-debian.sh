@@ -144,9 +144,10 @@ function main_menu(){
 	    assert_target || return "${item}";
 	    list "Kernel:" "${KERNELS[@]}" || return 6;
 	    kernel="${KERNELS[$(input)]}";
-	    chroot_bind;
-	    chroot "${target}" apt-get install "${kernel}" \
-		|| error "installing kernel";
+	    chroot_bind;	    
+	    chroot "${target}" apt-get update \
+		&& chroot "${target}" apt-get install "${kernel}" \
+		    || error "installing kernel";
 	    ;;
 	7) # Password
 	    assert_target || return "${item}";
