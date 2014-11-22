@@ -159,9 +159,6 @@ function main_menu(){
 	    assert_target || return "${item}";
 	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or advanced disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 42 \
 		|| return "${item}";
-	    local boot_device;
-	    dialog --inputbox "boot device (e.g. /dev/sda):" 8 25 2> "${TMP}";
-	    boot_device=$(input);
 	    chroot_bind;
 	    chroot "${target}" apt-get install grub-pc os-prober \
 		|| error "installing grub";
