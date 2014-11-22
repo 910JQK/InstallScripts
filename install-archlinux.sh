@@ -130,7 +130,7 @@ function main_menu(){
 		optionalpkg="base-devel";
 	    fi
 	    if yesno "Confirm" \
-		     'Install base system into "${target}" ?'; then
+		     'Install base system into "'"${target}"'" ?'; then
 		path_db="${target}/var/lib/pacman"
 		path_gpg="${target}/etc/pacman.d/gnupg";
 		path_cache="${target}/var/cache/pacman/pkg"
