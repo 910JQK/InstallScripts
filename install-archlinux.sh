@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Archlinux Installation Script
 #
 # Author: 910JQK https://github.com/910JQK
@@ -47,6 +48,20 @@ function assert_target(){
 	msg "Error" "Target directory is invalid. Please set target correctly.";
 	return 1;
     fi
+}
+
+
+function chroot_bind(){
+    mountpoint -q "${target}/dev" || mount --bind /dev "${target}/dev";
+    mountpoint -q "${target}/dev" || mount --bind /proc "${target}/proc";
+    mountpoint -q "${target}/dev" || mount --bind /sys "${target}/sys";
+}
+
+
+function chroot_release(){
+    mountpoint -q "${target}/dev" && umount "${target}/dev";
+    mountpoint -q "${target}/dev" && umount "${target}/proc";
+    mountpoint -q "${target}/dev" && umount "${target}/sys";
 }
 
 
@@ -135,20 +150,24 @@ function main_menu(){
 	    ;;
 	5) # Initramfs
 	    assert_target || return "${item}";
+	    chroot_bind;
 	    chroot "${target}" mkinitcpio -p linux \
 		|| error "generating initramfs";
 	    ;;
 	6) # Password
 	    asserat_target || return "${item}";
+	    chroot_bind;
 	    chroot "${target}" passwd root \
 		|| error "setting root password";
 	    ;;
 	7) # Bootloader
 	    assert_target || return "${item}";
-	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or senior disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 40 || return "${item}";
+	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or senior disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 40 \
+		|| return "${item}";
 	    local boot_device;
 	    dialog --inputbox "boot device (e.g. /dev/sda):" 8 25 2> "${TMP}";
 	    boot_device=$(input);
+	    chroot_bind;
 	    chroot "${target}" pacman -S grub os-prober;
 	    chroot "${target}" grub-install --recheck "${boot_device}" \
 		&& chroot "${target}" grub-mkconfig -o /boot/grub/grub.cfg \
@@ -160,6 +179,7 @@ function main_menu(){
 		|| error "empting pacman cache";
 	    ;;
 	9) # Quit
+	    assert_target && chroot_release;
 	    exit 0
 	    ;;
     esac
