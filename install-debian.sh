@@ -163,10 +163,8 @@ function main_menu(){
 	    dialog --inputbox "boot device (e.g. /dev/sda):" 8 25 2> "${TMP}";
 	    boot_device=$(input);
 	    chroot_bind;
-	    chroot "${target}" apt-get install grub-pc os-prober;
-	    chroot "${target}" grub-install --recheck "${boot_device}" \
-		&& chroot "${target}" grub-mkconfig -o /boot/grub/grub.cfg \
-		    || error "installing grub";
+	    chroot "${target}" apt-get install grub-pc os-prober \
+		|| error "installing grub";
 	    ;;
 	9) # Quit
 	    [ -d "${target}" ] && chroot_release;
