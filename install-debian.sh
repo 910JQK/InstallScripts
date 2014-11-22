@@ -94,7 +94,7 @@ function main_menu(){
 	   2 "Set Software Mirror" \
 	   3 "Select Suite" \
 	   4 "Install Base System" \
-	   5 "Set Apt Source" \
+	   5 "Set Apt Source and Fstab" \
 	   6 "Install Kernel" \
 	   7 "Set Root Password" \
 	   8 "Install Bootloader" \
@@ -136,9 +136,10 @@ function main_menu(){
 	    debootstrap "${suite}" "${target}" "${mirror}" \
 		|| error "installing base system";
 	    ;;
-	5) # Apt Source
+	5) # Apt Source & fstab
 	    assert_target || return "${item}";
 	    "${editor}" "${target}/etc/apt/sources.list";
+	    "${editor}" "${target}/etc/fstab";
 	    ;;
 	6) # Kernel
 	    assert_target || return "${item}";
