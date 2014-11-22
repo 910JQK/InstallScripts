@@ -9,7 +9,7 @@
 
 
 TMP="/tmp/install-debian.tmp";
-KERNELS=("linux-image-486" "linux-image-586" "linux-image-686" "linux-image-686-pae" "linux-image-amd64");
+KERNELS=("linux-image-486" "linux-image-586" "linux-image-686-pae" "linux-image-amd64");
 SUITES=("stable" "testing" "unstable");
 
 
