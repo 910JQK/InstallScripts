@@ -52,32 +52,36 @@ function assert_target(){
 
 
 function chroot_bind(){
+    cp /etc/resolv.conf "${target}/etc/resolv.conf";
     mountpoint -q "${target}/dev" || mount --bind /dev "${target}/dev";
-    mountpoint -q "${target}/dev" || mount --bind /proc "${target}/proc";
-    mountpoint -q "${target}/dev" || mount --bind /sys "${target}/sys";
+    mountpoint -q "${target}/proc" || mount --bind /proc "${target}/proc";
+    mountpoint -q "${target}/sys" || mount --bind /sys "${target}/sys";
 }
 
 
 function chroot_release(){
     mountpoint -q "${target}/dev" && umount "${target}/dev";
-    mountpoint -q "${target}/dev" && umount "${target}/proc";
-    mountpoint -q "${target}/dev" && umount "${target}/sys";
+    mountpoint -q "${target}/proc" && umount "${target}/proc";
+    mountpoint -q "${target}/sys" && umount "${target}/sys";
 }
 
 
 function config_file_menu(){
-    local i, file;
+    local i, file, item;
     local args=();
     i=0;
     for file in ${CONF_FILES[@]}; do
-	args=(${args[@]} $i $file);
+	args=(${args[@]} ${i} ${file});
 	let i=$i+1;
     done
-    dialog --title "Configuations" --menu "" 15 40 8 ${args[@]} 2> "${TMP}";
-    [ $? = 0 ] || return 0;
-    "${editor}" "${target}/${CONF_FILES[$(input)]}" \
+    dialog --title "Configuations" \
+	   --default-item "${1}" \
+	   --menu "" 15 40 8 ${args[@]} 2> "${TMP}";
+    [ $? = 0 ] || return 255;
+    item=$(input);
+    "${editor}" "${target}/${CONF_FILES[${item}]}" \
 	|| error "editing configuration file";
-    config_file_menu;
+    return "${item}";
 }
 
 
@@ -146,7 +150,13 @@ function main_menu(){
 	    ;;
 	4) # Configuration
 	    assert_target || return "${item}";
-	    config_file_menu;
+	    local item1;
+	    config_file_menu 0;
+	    item1=$?;
+	    while [ ${item1} != 255 ]; do
+		config_file_menu $item1;
+		item1=$?;
+	    done
 	    ;;
 	5) # Initramfs
 	    assert_target || return "${item}";
@@ -155,14 +165,14 @@ function main_menu(){
 		|| error "generating initramfs";
 	    ;;
 	6) # Password
-	    asserat_target || return "${item}";
+	    assert_target || return "${item}";
 	    chroot_bind;
 	    chroot "${target}" passwd root \
 		|| error "setting root password";
 	    ;;
 	7) # Bootloader
 	    assert_target || return "${item}";
-	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or senior disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 40 \
+	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or advanced disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 40 \
 		|| return "${item}";
 	    local boot_device;
 	    dialog --inputbox "boot device (e.g. /dev/sda):" 8 25 2> "${TMP}";
