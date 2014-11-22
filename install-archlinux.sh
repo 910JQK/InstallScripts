@@ -67,7 +67,9 @@ function chroot_release(){
 
 
 function config_file_menu(){
-    local i, file, item;
+    local i;
+    local file;
+    local item;
     local args=();
     i=0;
     for file in ${CONF_FILES[@]}; do
@@ -172,7 +174,7 @@ function main_menu(){
 	    ;;
 	7) # Bootloader
 	    assert_target || return "${item}";
-	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or advanced disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 40 \
+	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or advanced disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 42 \
 		|| return "${item}";
 	    local boot_device;
 	    dialog --inputbox "boot device (e.g. /dev/sda):" 8 25 2> "${TMP}";
