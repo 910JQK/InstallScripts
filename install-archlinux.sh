@@ -72,13 +72,13 @@ function config_file_menu(){
     local item;
     local args=();
     i=0;
-    for file in ${CONF_FILES[@]}; do
-	args=(${args[@]} ${i} ${file});
+    for file in "${CONF_FILES[@]}"; do
+	args=("${args[@]}" "${i}" "${file}");
 	let i=$i+1;
     done
     dialog --title "Configuations" \
 	   --default-item "${1}" \
-	   --menu "" 15 40 8 ${args[@]} 2> "${TMP}";
+	   --menu "" 15 40 8 "${args[@]}" 2> "${TMP}";
     [ $? = 0 ] || return 255;
     item=$(input);
     "${editor}" "${target}/${CONF_FILES[${item}]}" \
