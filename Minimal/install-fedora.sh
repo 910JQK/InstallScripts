@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Debian(X86) Installation Script
+# Fedora Installation Script
 #
 # Author: 910JQK https://github.com/910JQK
 # This script is licensed under MIT License, with absolutely no warranty.
@@ -8,21 +8,23 @@
 # *dialog* is required 
 
 
-TMP="/tmp/install-debian.tmp";
-KERNELS=("linux-image-486" "linux-image-586" "linux-image-686-pae" "linux-image-amd64");
-SUITES=("stable" "testing" "unstable");
+TMP="/tmp/install-fedora.tmp";
+REPO_FILE="/etc/yum/repos.d/Fedora-Minimal-Install.repo";
 
 
 function init(){
     editor="nano";
     target="";
-    suite="stable"
-    mirror="http://mirrors.ustc.edu.cn/debian";
 }
 
 
 function msg(){
     dialog --title "${1}" --msgbox "${2}" 7 25;
+}
+
+
+function yesno(){
+    dialog --title "${1}" --yesno "${2}" 7 25;
 }
 
 
@@ -63,37 +65,19 @@ function chroot_release(){
 }
 
 
-function list(){
-    local title;
-    local item;
-    local i;
-    local args;
-    title="${1}";
-    shift;
-    args=();
-    i=0;
-    for item in "${@}"; do
-	args=("${args[@]}" "${i}" "${item}");
-	let i=$i+1;
-    done
-    dialog --menu "${title}" 12 30 7 "${args[@]}" 2> "${TMP}" || return 1;
-}
-
-
 function main_menu(){
-    dialog --title "Debian Installation" \
+    dialog --title "Fedora Installation" \
 	   --default-item "${1}" \
 	   --menu "Menu" 15 40 8 \
 	   0 "Select Text Editor" \
 	   1 "Set Target Directory" \
-	   2 "Set Software Mirror" \
-	   3 "Select Suite" \
-	   4 "Install Base System" \
-	   5 "Set Apt Source and Fstab" \
-	   6 "Install Kernel" \
-	   7 "Set Root Password" \
-	   8 "Install Bootloader" \
-	   9 "Quit" \
+	   2 "Set Release and Mirror" \
+	   3 "Install Base System" \
+	   4 "Install Kernel and Grub" \
+	   5 "Modify Configurations" \
+	   6 "Set Root Password" \
+	   7 "Install Bootloader" \
+	   8 "Quit" \
 	   2> "${TMP}";
 
     [ $? = 0 ] || exit 0;
@@ -118,48 +102,61 @@ function main_menu(){
 	    dialog --inputbox "target directory:" 8 25 2> "${TMP}";
 	    target="$(input)";
 	    ;;
-	2) # Mirror
-	    dialog --inputbox "mirror (http://***/debian):" 10 30 2> "${TMP}";
+	2) # Release(Architecture) and Mirror
+	    dialog --inputbox "release (e.g. 20):" 8 25 \
+		   2> "${TMP}";
+	    release="$(input)";
+	    dialog --title "Architecture" --menu "Menu" 9 25 5 \
+		   i386 32bit x86_64 64bit \
+		   2> "${TMP}";
+	    arch="$(input)";
+	    dialog --inputbox "mirror (http://***/fedora):" 10 30 \
+		   2> "${TMP}";
 	    mirror="$(input)";
+	    cat << EOF > "${REPO_FILE}";
+[fedora]
+name=Fedora ${release}
+failovermethod=priority 
+baseurl=${mirror}/linux/releases/${release}/Everything/${arch}/os/
+enabled=1 
+metadata_expire=7d
+EOF
 	    ;;
-	3) # Suite
-	    list "Suite:" "${SUITES[@]}" || return 3;
-	    suite="${SUITES[$(input)]}";
-	    ;;
-	4) # Base System
+	3) # Base System
 	    assert_target || return "${item}";
-	    debootstrap "${suite}" "${target}" "${mirror}" \
-		|| error "installing base system";
+	    yum makecache \
+		&& yum groups install "Minimal Install" \
+		       --installroot="${target}" \
+		    || error "installing base system";
 	    ;;
-	5) # Apt Source & fstab
+	4) # Kernel and Grub 
+	    yum install kernel grub2 --installroot="${target}" \
+		|| error "installing kernel and grub";
+	    ;;
+	5) # Configurations
 	    assert_target || return "${item}";
-	    "${editor}" "${target}/etc/apt/sources.list";
 	    "${editor}" "${target}/etc/fstab";
+	    "${editor}" "${target}/etc/selinux/config";
 	    ;;
-	6) # Kernel
-	    assert_target || return "${item}";
-	    list "Kernel:" "${KERNELS[@]}" || return 6;
-	    kernel="${KERNELS[$(input)]}";
-	    chroot_bind;	    
-	    chroot "${target}" apt-get update \
-		&& chroot "${target}" apt-get install "${kernel}" \
-		    || error "installing kernel";
-	    ;;
-	7) # Password
+	6) # Password
 	    assert_target || return "${item}";
 	    chroot_bind;
 	    chroot "${target}" passwd root \
 		|| error "setting root password";
 	    ;;
-	8) # Bootloader
+	7) # Bootloader
 	    assert_target || return "${item}";
 	    dialog --title "Notice" --yesno "This script will install bootloader *GRUB* in a simple way. If you are using *UEFI* or advanced disk settings (e.g. GPT partition table, LVM and RAID), you'd better configure it manually. Continue installing?" 10 42 \
 		|| return "${item}";
+	    local boot_device;
+	    dialog --inputbox "boot device (e.g. /dev/sda):" 8 25 2> "${TMP}";
+	    boot_device=$(input);
 	    chroot_bind;
-	    chroot "${target}" apt-get install grub-pc os-prober \
-		|| error "installing grub";
+	    chroot "${target}" grub2-install --recheck "${boot_device}" \
+		&& chroot "${target}" grub2-mkconfig -o /boot/grub/grub.cfg \
+		    || error "installing grub";
 	    ;;
-	9) # Quit
+	8) # Quit
 	    [ -d "${target}" ] && chroot_release;
 	    exit 0
 	    ;;
